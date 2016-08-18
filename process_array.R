@@ -70,7 +70,13 @@ process_array <- function(parent_dir,array_id)
 	betas.aut[pVal.Filt>0.05] <- NA
 	
 	print(paste0("13. process_array script - WRITING ARRAY TO CSV - ",Sys.time()))
+	if (length(sampleNames(rgSet)) == 1){
+		betas.aut <- as.data.frame(betas.aut)
+		colnames(betas.aut)<-sampleNames(rgSet)
+	}
+	
 	write.csv(betas.aut,out_path,quote=FALSE)
+	
 
 	print(paste0("14. process_array script - FINISHED - ",Sys.time()))	
 }
