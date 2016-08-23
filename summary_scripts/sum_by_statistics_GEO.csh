@@ -9,4 +9,4 @@ if ($#argv != 2) then
     echo "Usage: $0 < summary_files_dir, stat_files_dir #>"
         exit 0
 endif
-srun Rscript  /cs/icore/joshua.moss/scripts/meth_array_scripts/summary_scripts/sum_by_statistics.R $1 $2
+srun Rscript  /cs/icore/joshua.moss/scripts/meth_array_scripts/summary_scripts/sum_by_statistics_GEO.R $1 $2
