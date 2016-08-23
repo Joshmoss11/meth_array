@@ -1,19 +1,19 @@
-group_by_cancer_type <- function(parent_dir, cancer_name)
+group_by_cancer_type <- function(parent.dir, cancer_name)
 {
 	# Read sample sheet csv
 	print(paste0("group_by_cancer_type script - READING SAMPLE SHEET - ",Sys.time()))
-	parent.dir <- file.path(parent_dir)
 	ss <- read.csv(file.path(parent.dir,'sample_sheet_all.csv'),stringsAsFactors=F)
+	parent.dir <- file.path(parent.dir,'betas')
 
-	# Create directory
+	# Create directory path
         betas.by_cancer.dir <- file.path(parent.dir,'by_cancer')
-        dir.create(betas.by_cancer.dir, showWarnings=FALSE)	
 
 	# Replace sample type column to one of 3 values
 	ss <- ss[!ss$sample_type =="no_info",]
 	ss$sample_type <- gsub("Additional Metastatic", "Metastatic",ss$sample_type)
 	ss$sample_type <- gsub("Recurrent Tumor", "Primary Tumor",ss$sample_type)
 	ss$sample_type <- gsub("Additional - New Primary", "Primary Tumor",ss$sample_type)
+	ss$sample_type <- gsub(" ", "_", ss$sample_type)
 
 	# Get array numbers
 	array.nums <- substr(ss$Array.Data.File,1,10)
@@ -34,21 +34,27 @@ group_by_cancer_type <- function(parent_dir, cancer_name)
 			cancer.arrays <- unique(array.nums[ss$cancer_type==cancer_name & ss$sample_type == sample.type[j]])	
 			for ( k in 1:length(cancer.arrays)){
 				# Read current array
-				curr.array <- read.csv(file.path(parent.dir,"betas","by_array", paste0(cancer.arrays[k],".csv")),stringsAsFactors=F, row.names=1, check.names=F)
+				curr.array <- read.csv(file.path(parent.dir,"by_array", paste0(cancer.arrays[k],".csv")),stringsAsFactors=F, row.names=1, check.names=F)
 		
 				curr.sample.type <- ss$Array.Data.File[array.nums==cancer.arrays[k] & ss$cancer_type==cancer_name & ss$sample_type==sample.type[j]]
 				sample.type.filt <- intersect(curr.sample.type,colnames(curr.array))
 	
 				if (length(sample.type.filt) > 0) {
 					if (k==1){
-						data <- curr.array[,curr.sample.type]
+						if (length(sample.type.filt) == 1) {
+                                                        data <- as.data.frame(curr.array[,sample.type.filt])
+                                                        colnames(data) <- sample.type.filt
+							rownames(data) <- rownames(curr.array)
+                                                }else{
+	                                                data <- curr.array[,sample.type.filt]
+						}
 					}else {
-						if (length(curr.sample.type) == 1) {
-							temp.data <- as.data.frame(curr.array[,curr.sample.type])
-							colnames(temp.data) <- curr.sample.type
+						if (length(sample.type.filt) == 1) {
+							temp.data <- as.data.frame(curr.array[,sample.type.filt])
+							colnames(temp.data) <- sample.type.filt 
 							data <- cbind(data, temp.data)	
 						}else{
-							data <- cbind(data, curr.array[,curr.sample.type])
+							data <- cbind(data, curr.array[,sample.type.filt])
 						}
 					}	
 				}
@@ -56,7 +62,7 @@ group_by_cancer_type <- function(parent_dir, cancer_name)
 			}	
 			
 			print(paste0("group_by_cancer_type script - CREATING FILE FOR ",sample.type[j]," - ",Sys.time()))
-			sample.type.file.dir <- file.path(cancer.dir, paste0(sample.type[j],".csv"))
+			sample.type.file.dir <- file.path(cancer.dir, paste0(cancer_name,"_",sample.type[j],".csv"))
 			write.csv(data,sample.type.file.dir,quote=FALSE)
 		}
 	}
