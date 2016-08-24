@@ -1,0 +1,75 @@
+Description for scripts in /cs/icore/joshua.moss/scripts/meth_array_scripts/summary_scripts directory:
+
+1. process array data from idats - one script for all (TCGA/GEO/lab_data)
+Desc:
+process idats data - noob, BMIQ, remove sex chromosomes and more.
+
+Scripts:
+process_array.R
+process_array.csh
+process_queue.csh - runs with one param - Data source (TCGA/GEO/lab_data) (40 minutes run)
+
+2. Create cancer queue or tissue queue
+Desc:
+creates cancer_queue in TCGA dr or tissue_queue files in GEO/lab_data dir
+
+Scripts:
+create_cancer_queue_TCGA.R - runs with one param - the path to save queue file
+create_tissue_queue.R - runs with one param - the path to save queue file
+
+3. Group data by cancer type fo TCGA, or Group by tissue type for GEO/lab_data
+Scripts:
+group_by_cancer_type_TCGA.R
+group_by_cancer_type_TCGA.csh
+group_by_cancer_queue_TCGA.csh - no params needed (32 minutes run)
+
+group_by_tissue_type.R
+group_by_tissue_type.csh
+group_by_tissue_queue.csh - runs with one param - Data source (GEO/lab_data) (2 minutes run)
+
+4. Sum data by cancer type for TCGA - means, std, quantile 0.1, quantile 0.9, samples_num
+Scripts:
+summary_scripts/sum_by_cancer_TCGA.R
+summary_scripts/sum_by_cancer_TCGA.csh
+summary_scripts/sum_by_cancer_queue_TCGA.csh - no params needed (50 minutes run)
+
+5. Sum data by tissue type GEO/lab_data - means, std, quantile 0.1, quantile 0.9, samples_num
+Scripts:
+summary_scripts/sum_by_tissue.R
+summary_scripts/sum_by_tissue.csh
+summary_scripts/sum_by_tissue_queue.csh  - runs with one param - Data source (GEO/lab_data) (5 minutes run)
+
+6. Sum data by statistics TCGA
+Desc:
+Rearrange all means in one csv, all std in one csv...
+
+Scripts:
+summary_scripts/sum_by_statistics_TCGA.R
+summary_scripts/sum_by_statistics_TCGA.csh
+summary_scripts/sum_by_stat_TCGA.csh - no params needed (4 minutes run)
+
+7. Sum data by statistics GEO
+Desc:
+Rearrange all means in one csv, all std in one csv... works only with data of 450000 rows
+
+Scripts:
+summary_scripts/sum_by_statistics_GEO.R
+summary_scripts/sum_by_statistics_GEO.csh
+summary_scripts/sum_by_stat_GEO.csh - no params needed (5 minutes run)
+
+8. Sum data by statistics lab_data
+Desc:
+Rearrange all means in one csv, all std in one csv... works on data of 450000 and 850000 rows
+
+Scripts:
+summary_scripts/sum_by_statistics_lab_data.R
+summary_scripts/sum_by_statistics_lab_data.csh
+summary_scripts/sum_by_stat_lab_data.csh - no params needed (4 minutes run)
+
+
+
+
+
+
+
+
