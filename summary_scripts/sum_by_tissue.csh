@@ -1,5 +1,5 @@
 #!/bin/csh
-#SBATCH --mem=5000
+#SBATCH --mem=15000
 #SBATCH --time=2:00:00
 #SBATCH --cpus-per-task=2
 

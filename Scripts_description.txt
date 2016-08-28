@@ -25,7 +25,7 @@ group_by_cancer_queue_TCGA.csh - no params needed (32 minutes run)
 
 group_by_tissue_type.R
 group_by_tissue_type.csh
-group_by_tissue_queue.csh - runs with one param - Data source (GEO/lab_data) (2 minutes run)
+group_by_tissue_queue.csh - runs with one param - Data source (GEO/lab_data) (2 minutes run) knows to deal with 450,850 rows
 
 4. Sum data by cancer type for TCGA - means, std, quantile 0.1, quantile 0.9, samples_num
 Scripts:

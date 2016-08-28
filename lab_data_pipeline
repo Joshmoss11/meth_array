@@ -1,0 +1,9 @@
+#copy idats
+
+
+#update array queue
+ls idats/by_array/ > queue
+
+
+#update tissue queue
+Rscript create_tissue_queue.R /mnt/lustre/hms-01/fs01/joshua.moss/dor/meth_array_data/lab_data
