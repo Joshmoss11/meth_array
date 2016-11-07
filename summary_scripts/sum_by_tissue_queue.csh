@@ -14,10 +14,12 @@ mkdir summary/by_tissue/group_by_tissue_out
 setenv working_path ${parent_path}/betas/by_tissue
 
 foreach a (`cat tissue_queue`) 
-        echo Working on $a
-	setenv input_betas_file ${working_path}/${a}.csv
-	setenv output_betas_file ${parent_path}/summary/by_tissue/${a}.csv
+	if ( -e ${parent_path}/summary/by_tissue/${a}.csv != 1) then
+	        echo Working on $a
+		setenv input_betas_file ${working_path}/${a}.csv
+		setenv output_betas_file ${parent_path}/summary/by_tissue/${a}.csv
 
-        sbatch --output=summary/by_tissue/group_by_tissue_out/${a}.out /cs/icore/joshua.moss/scripts/meth_array_scripts/summary_scripts/sum_by_tissue.csh ${input_betas_file} ${output_betas_file}
+	        sbatch --output=summary/by_tissue/group_by_tissue_out/${a}.out /cs/icore/joshua.moss/scripts/meth_array_scripts/summary_scripts/sum_by_tissue.csh ${input_betas_file} ${output_betas_file}
+	endif
 end
 

@@ -7,10 +7,10 @@ sum_by_tissue <- function(betas_file, sum_betas_file) {
 	# Calculate statistics per sample_type file
 	print(paste0("sum_by_tissue script - CALC STATISTICS - ",Sys.time()))
 	samples_num <- ncol(betas)
-	means <- rowMeans(betas, na.rm = TRUE)
-	std <- apply(betas, 1, sd, na.rm = TRUE)
-	quantile_0.1 <- apply(betas, 1, quantile, probs=c(0.1), na.rm = TRUE)
-	quantile_0.9 <- apply(betas, 1, quantile, probs=c(0.9), na.rm = TRUE)
+	means <- round(rowMeans(betas, na.rm = TRUE),4)
+	std <- round(apply(betas, 1, sd, na.rm = TRUE),4)
+	quantile_0.1 <- round(apply(betas, 1, quantile, probs=c(0.1), na.rm = TRUE),4)
+	quantile_0.9 <- round(apply(betas, 1, quantile, probs=c(0.9), na.rm = TRUE),4)
 
 	# Merge and write to file
 	print(paste0("sum_by_tissue script - MERGE AND WRITE FILE - ",Sys.time()))

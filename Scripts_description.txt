@@ -48,28 +48,12 @@ summary_scripts/sum_by_statistics_TCGA.R
 summary_scripts/sum_by_statistics_TCGA.csh
 summary_scripts/sum_by_stat_TCGA.csh - no params needed (4 minutes run)
 
-7. Sum data by statistics GEO
-Desc:
-Rearrange all means in one csv, all std in one csv... works only with data of 450000 rows
-
-Scripts:
-summary_scripts/sum_by_statistics_GEO.R
-summary_scripts/sum_by_statistics_GEO.csh
-summary_scripts/sum_by_stat_GEO.csh - no params needed (5 minutes run)
-
-8. Sum data by statistics lab_data
+7. Sum data by statistics lab_data/GEO
 Desc:
 Rearrange all means in one csv, all std in one csv... works on data of 450000 and 850000 rows
 
 Scripts:
-summary_scripts/sum_by_statistics_lab_data.R
-summary_scripts/sum_by_statistics_lab_data.csh
-summary_scripts/sum_by_stat_lab_data.csh - no params needed (4 minutes run)
-
-
-
-
-
-
-
+summary_scripts/sum_by_statistics.R
+summary_scripts/sum_by_statistics.csh
+summary_scripts/sum_by_stat.csh - runs with one param - Data source (GEO/lab_data) (4 minutes run)
 

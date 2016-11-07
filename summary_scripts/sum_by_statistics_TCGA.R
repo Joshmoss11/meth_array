@@ -1,4 +1,5 @@
-sum_by_statistics_TCGA <- function(sample_type, parent_dir, statistics_dir) {
+sum_by_statistics_TCGA <- function(sample_type, parent_dir, statistics_dir) 
+{
 
 	# Get all tissue summary files by sample_type
 	print(paste0("sum_by_statistics_TCGA script - LISTING SUMMARY FILES - ",Sys.time()))

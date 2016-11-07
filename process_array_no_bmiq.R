@@ -51,19 +51,6 @@ process_array <- function(parent_dir,array_id)
 	ProbeTypeNum[ProbeType=='I'] <- 1
     	ProbeTypeNum[ProbeType=='II'] <- 2
 
-	result = tryCatch({
-		# BMIQ
-		print(paste0("11. process_array script - BMIQ - ",Sys.time()))
-		if (is.null(dim(betas.aut))) 
-		{
-			betas.aut <- BMIQ(betas.aut,design.v=ProbeTypeNum, plots=FALSE)$nbeta
-		} else {
-			betas.aut <- apply(betas.aut,2,function(x){BMIQ(x,design.v=ProbeTypeNum, plots=FALSE)$nbeta})
-		}
-	},error = function(e) {
-   		print(paste0("There was an error in array id ", array_id, " error text: ", e))
-	})
-	
 	# Filter p-values
 	print(paste0("12. process_array script - FIX ACCORDING TO P_VALUES - ",Sys.time()))
 	pVal.Filt <- pVal[match(rownames(betas.aut),rownames(pVal))]
@@ -75,8 +62,7 @@ process_array <- function(parent_dir,array_id)
 		colnames(betas.aut)<-sampleNames(rgSet)
 	}
 	
-	write.csv(round(betas.aut,4),out_path,quote=FALSE)
-	
+	write.csv(betas.aut,out_path,quote=FALSE)
 
 	print(paste0("14. process_array script - FINISHED - ",Sys.time()))	
 }

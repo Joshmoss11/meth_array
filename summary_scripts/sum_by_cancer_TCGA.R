@@ -14,13 +14,13 @@ if(length(beta_files) > 0) {
 		print(paste0("sum_by_cancer_TCGA script - CALC SAMPLES NUM - ",Sys.time()))
 		samples_num <- ncol(betas)
 		print(paste0("sum_by_cancer_TCGA script - CALC MEANS - ",Sys.time()))
-		means <- rowMeans(betas, na.rm = TRUE)
+		means <- round(rowMeans(betas, na.rm = TRUE),4)
 		print(paste0("sum_by_cancer_TCGA script - CALC STD - ",Sys.time()))
-		std <- apply(betas, 1, sd, na.rm = TRUE)
+		std <- round(apply(betas, 1, sd, na.rm = TRUE),4)
 		print(paste0("sum_by_cancer_TCGA script - CALC QUANTILE 0.1 - ",Sys.time()))
-		quantile_0.1 <- apply(betas, 1, quantile, probs=c(0.1), na.rm = TRUE)
+		quantile_0.1 <- round(apply(betas, 1, quantile, probs=c(0.1), na.rm = TRUE),4)
 		print(paste0("sum_by_cancer_TCGA script - CALC QUANTILE 0.9 - ",Sys.time()))
-		quantile_0.9 <- apply(betas, 1, quantile, probs=c(0.9), na.rm = TRUE)
+		quantile_0.9 <- round(apply(betas, 1, quantile, probs=c(0.9), na.rm = TRUE),4)
 
 		# Merge and write to file
 		print(paste0("sum_by_cancer_TCGA script - MERGE AND WRITE FILE - ",Sys.time()))

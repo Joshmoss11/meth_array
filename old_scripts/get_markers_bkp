@@ -1,0 +1,224 @@
+BLOOD_METH_THRESHOLD <- 0.8
+BLOOD_UNMETH_THRESHOLD <- 0.2
+OTHER_TISSUES_METH_THRESHOLD <- 0.8
+OTHER_TISSUES_UNMETH_THRESHOLD <- 0.2
+TISSUE_UNMETH_THRESHOLD <- 0.5
+TISSUE_METH_THRESHOLD <- 0.5
+NUM_ALLOWED_BLOOD <- 0
+nrows <- -1
+
+get_rows_methylated_in_blood <- function(blood.10,BLOOD_METH_THRESHOLD){
+	num.blood <- ncol(blood.10)
+	blood.methylated <- blood.10 > BLOOD_METH_THRESHOLD
+	blood.methylated.count <- apply(blood.methylated,1,sum)
+	rows.methylated.in.blood <- which(blood.methylated.count >= (num.blood-NUM_ALLOWED_BLOOD))
+	return(rows.methylated.in.blood)
+}
+
+get_rows_unmethylated_in_blood <- function(blood.90,BLOOD_UNMETH_THRESHOLD){
+	num.blood <- ncol(blood.90)
+	blood.unmethylated <- blood.90 < BLOOD_UNMETH_THRESHOLD
+	blood.unmethylated.count <- apply(blood.unmethylated,1,sum)
+	rows.unmethylated.in.blood <- which(blood.unmethylated.count >= (num.blood-NUM_ALLOWED_BLOOD))
+	return(rows.unmethylated.in.blood)
+}
+
+get_unmeth_markers <- function(tissue,blood.10.meth_blood,tissues.10.meth_blood,tissues.90.meth_blood,TISSUE_UNMETH_THRESHOLD,OTHER_TISSUES_METH_THRESHOLD){
+	other.tissues <- tissues.10.meth_blood[,setdiff(colnames(tissues.10.meth_blood),tissue)]
+	num.tissues <- ncol(other.tissues)
+	target.tissue <- tissues.90.meth_blood[,tissue,drop=FALSE]
+	target.tissue.unmeth <- target.tissue < TISSUE_UNMETH_THRESHOLD
+	target.tissue.unmeth[is.na(target.tissue.unmeth)]<-F
+	other.tissues.meth <- tissues.10.meth_blood > OTHER_TISSUES_METH_THRESHOLD
+	other.tissues.meth.count <- data.frame(apply(other.tissues.meth,1,sum,na.rm=T,drop=FALSE))
+	other.tissues.meth.many <- other.tissues.meth.count > (num.tissues/2)
+
+	markers <- data.frame(target.tissue,blood.10.meth_blood,tissues.10.meth_blood,other.tissues.meth.count)
+	markers <- markers[target.tissue.unmeth & other.tissues.meth.many,]
+	#markers <- markers[target.tissue.unmeth,]
+	names(markers)[ncol(markers)] <- 'num_tissues'
+	markers <- markers[order(markers[,ncol(markers)],decreasing=T),]
+	return(markers)
+}
+
+get_meth_markers <- function(tissue,blood.table.90.unmeth_blood,tissues.table.10.unmeth_blood,tissues.table.90.unmeth_blood,TISSUE_METH_THRESHOLD,OTHER_TISSUES_UNMETH_THRESHOLD){
+	other.tissues <- tissues.90.unmeth_blood[,setdiff(colnames(tissues.90.unmeth_blood),tissue)]
+	num.tissues <- ncol(other.tissues)
+	target.tissue <- tissues.10.unmeth_blood[,tissue,drop=FALSE]
+	target.tissue.meth <- target.tissue > TISSUE_METH_THRESHOLD
+	target.tissue.meth[is.na(target.tissue.meth)]<-F
+	other.tissues.unmeth <- tissues.90.unmeth_blood < OTHER_TISSUES_UNMETH_THRESHOLD
+	other.tissues.unmeth.count <- data.frame(apply(other.tissues.unmeth,1,sum,na.rm=T,drop=FALSE))
+	other.tissues.unmeth.many <- other.tissues.unmeth.count > (num.tissues/2)
+
+	markers <- data.frame(target.tissue,blood.90.unmeth_blood,tissues.90.unmeth_blood,other.tissues.unmeth.count)
+	markers <- markers[target.tissue.meth & other.tissues.unmeth.many,]
+	#markers <- markers[target.tissue.meth,]
+	names(markers)[ncol(markers)] <- 'num_tissues'
+	markers <- markers[order(markers[,ncol(markers)],decreasing=T),]
+	return(markers)
+}
+
+write_markers_file <- function(markers, annotation, markers_dir, cancer, marker_type, tissue, annotation.id){
+	markers <- merge(annotation,markers,by.x=annotation.id,by.y="row.names",sort=F)
+	markers <- markers[order(markers$num_tissues,decreasing=T),]
+	markers.file <- file.path(markers_dir, cancer, paste0(tissue,"_", marker_type,".txt"))
+	write.table(markers,markers.file,sep='\t',col.names=NA,quote=F)
+	num.markers <- nrow(markers)
+	print(paste('Found',num.markers, marker_type,'markers for',tissue))
+}
+
+TCGA_parent_dir <- "/mnt/lustre/hms-01/fs01/joshua.moss/dor/meth_array_data/TCGA"
+GEO_parent_dir <- "/mnt/lustre/hms-01/fs01/joshua.moss/dor/meth_array_data/GEO"
+lab_data_parent_dir <- "/mnt/lustre/hms-01/fs01/joshua.moss/dor/meth_array_data/lab_data"
+
+summary_dir <- "summary/by_statistics"
+annot.file <- "/mnt/lustre/hms-01/fs01/hadargolan/markers/Illumina_450k_annotation.txt"
+markers_dir <-"/mnt/lustre/hms-01/fs01/hadargolan/markers/"
+cancer <- "LC"
+
+# Blood columns definition
+geo.blood.cols <- c("Whole_blood", "PBMC", "Granulocytes", "CD4._T.cells", "CD8._T.cells", "CD19._B.cells", "CD14._Monocytes", "CD56._NK_cells", "Neutrophils", "Eosinophils", "Whole_maternal_blood", "Cord_blood")
+lab_data.blood.cols <- c("Leukocyte", "Leukocytes_cord_blood")
+blood.cols <- c(geo.blood.cols,lab_data.blood.cols)
+
+# Read annotation file
+print(paste("Reading annotation file -", Sys.time()))
+annotation <- read.table(annot.file,sep='\t',header=T)
+annotation.id <- 'IlmnID'
+
+# Read cpg's data
+print(paste("Reading GEO quantiles -", Sys.time()))
+geos.10 <- as.matrix(read.csv(file.path(GEO_parent_dir,summary_dir,"quantile_0.1.csv"), header=T, row.names=1, nrows=nrows))
+geos.90 <- as.matrix(read.csv(file.path(GEO_parent_dir,summary_dir,"quantile_0.9.csv"), header=T, row.names=1, nrows=nrows))
+
+print(paste("Reading lab_data quantiles -", Sys.time()))
+lab_data.10 <-  as.matrix(read.csv(file.path(lab_data_parent_dir,summary_dir,"quantile_0.1.csv"), header=T, row.names=1, nrows=nrows))
+lab_data.90 <-  as.matrix(read.csv(file.path(lab_data_parent_dir,summary_dir,"quantile_0.9.csv"), header=T, row.names=1, nrows=nrows))
+
+print(paste("Reading TCGA quantiles -", Sys.time()))
+tcga.10.Metastatic <- as.matrix(read.csv(file.path(TCGA_parent_dir,summary_dir, "Metastatic", "quantile_0.1_Metastatic.csv"), header=T, row.names=1, nrows=nrows))
+tcga.90.Metastatic <- as.matrix(read.csv(file.path(TCGA_parent_dir,summary_dir, "Metastatic", "quantile_0.9_Metastatic.csv"), header=T, row.names=1, nrows=nrows))
+tcga.10.PT <- as.matrix(read.csv(file.path(TCGA_parent_dir,summary_dir, "Primary_Tumor", "quantile_0.1_Primary_Tumor.csv"), header=T, row.names=1, nrows=nrows))
+tcga.90.PT <- as.matrix(read.csv(file.path(TCGA_parent_dir,summary_dir, "Primary_Tumor", "quantile_0.9_Primary_Tumor.csv"), header=T, row.names=1, nrows=nrows))
+tcga.10.Normal <- as.matrix(read.csv(file.path(TCGA_parent_dir,summary_dir, "Solid_Tissue_Normal", "quantile_0.1_Solid_Tissue_Normal.csv"), header=T, row.names=1, nrows=nrows))
+tcga.90.Normal <- as.matrix(read.csv(file.path(TCGA_parent_dir,summary_dir, "Solid_Tissue_Normal", "quantile_0.9_Solid_Tissue_Normal.csv"), header=T, row.names=1, nrows=nrows))
+
+# Update colnames to contain tissue type
+colnames(tcga.10.Metastatic) <- paste0(colnames(tcga.10.Metastatic),"_Metastatic")
+colnames(tcga.90.Metastatic) <- paste0(colnames(tcga.90.Metastatic),"_Metastatic")
+colnames(tcga.10.PT) <- paste0(colnames(tcga.10.PT),"_Primary_Tumor")
+colnames(tcga.90.PT) <- paste0(colnames(tcga.90.PT),"_Primary_Tumor")
+colnames(tcga.90.Normal) <- paste0(colnames(tcga.90.Normal),"_Solid_Tissue_Normal")
+colnames(tcga.10.Normal) <- paste0(colnames(tcga.10.Normal),"_Solid_Tissue_Normal")
+
+
+merge_matix <- function(...){
+	
+        input_objects <- list(...)
+
+	rownames.10 <- rownames(input_objects[[1]])
+	for (i in 2:length(input_objects)){
+		rownames.10 <- union(rownames.10, rownames(input_objects[[i]]))
+	}
+
+
+	merged_data <- matrix(NA, nrow=length(rownames.10), ncol=ncol(geos.10)+ncol(lab_data.10)+ncol(tcga.10.Metastatic)+ncol(tcga.10.PT)+ncol(tcga.10.Normal))
+
+	print(length(rownames.10))
+	head(rownames.10)
+	#return(rows.methylated.in.blood)
+}
+
+
+
+
+# Merge all data
+print(paste("Merging data -", Sys.time()))
+rownames.10 <- union(union(rownames(lab_data.10),rownames(geos.10)), rownames(tcga.10.Normal))
+rownames.90 <- union(union(rownames(lab_data.90), rownames(geos.90)), rownames(tcga.90.Normal))
+all.10 <- matrix(NA, nrow=length(rownames.10), ncol=ncol(geos.10)+ncol(lab_data.10)+ncol(tcga.10.Metastatic)+ncol(tcga.10.PT)+ncol(tcga.10.Normal))
+all.90 <- matrix(NA, nrow=length(rownames.90), ncol=ncol(geos.90)+ncol(lab_data.90)+ncol(tcga.90.Metastatic)+ncol(tcga.90.PT)+ncol(tcga.90.Normal))
+rownames(all.10) <- rownames.10
+rownames(all.90) <- rownames.90
+colnames(all.10) <- c(colnames(geos.10),colnames(lab_data.10),colnames(tcga.10.Metastatic),colnames(tcga.10.PT),colnames(tcga.10.Normal))
+colnames(all.90) <- c(colnames(geos.90),colnames(lab_data.90),colnames(tcga.90.Metastatic),colnames(tcga.90.PT),colnames(tcga.90.Normal))
+
+# Match each matrix and merge to final matrix
+border.1 <- ncol(geos.10)
+border.2 <- ncol(geos.10)+ncol(lab_data.10)
+border.3 <- ncol(geos.10)+ncol(lab_data.10)+ncol(tcga.10.Metastatic)
+border.4 <- ncol(geos.10)+ncol(lab_data.10)+ncol(tcga.10.Metastatic)+ncol(tcga.10.PT)
+border.5 <- ncol(geos.10)+ncol(lab_data.10)+ncol(tcga.10.Metastatic)+ncol(tcga.10.PT)+ncol(tcga.10.Normal)
+
+match_idx <- match(rownames(geos.10), rownames(all.10))
+all.10[match_idx,1:border.1] <- geos.10
+match_idx <- match(rownames(lab_data.10), rownames(all.10))
+all.10[match_idx,(border.1+1):border.2] <- lab_data.10
+match_idx <- match(rownames(tcga.10.Metastatic), rownames(all.10))
+all.10[match_idx,(border.2+1):border.3] <- tcga.10.Metastatic
+match_idx <- match(rownames(tcga.10.PT), rownames(all.10))
+all.10[match_idx,(border.3+1):border.4] <- tcga.10.PT
+match_idx <- match(rownames(tcga.10.Normal), rownames(all.10))
+all.10[match_idx,(border.4+1):border.5] <- tcga.10.Normal
+
+match_idx <- match(rownames(geos.90), rownames(all.90))
+all.90[match_idx,1:border.1] <- geos.90
+match_idx <- match(rownames(lab_data.90), rownames(all.90))
+all.90[match_idx,(border.1+1):border.2] <- lab_data.90
+match_idx <- match(rownames(tcga.90.Metastatic), rownames(all.90))
+all.90[match_idx,(border.2+1):border.3] <- tcga.90.Metastatic
+match_idx <- match(rownames(tcga.90.PT), rownames(all.90))
+all.90[match_idx,(border.3+1):border.4] <- tcga.90.PT
+match_idx <- match(rownames(tcga.90.Normal), rownames(all.90))
+all.90[match_idx,(border.4+1):border.5] <- tcga.90.Normal
+
+# Remove irrelevant tissues, including healthy tissue (solid tissue normal) of target tissue
+all.10 <- all.10[,!colnames(all.10) %in% c(paste0(cancer,"_Solid_Tissue_Normal"),"Mix","Negative","cfDNA")]
+all.90 <- all.90[,!colnames(all.90) %in% c(paste0(cancer,"_Solid_Tissue_Normal"),"Mix","Negative","cfDNA")]
+
+# Separating into blood and tissues
+blood.cols <- intersect(blood.cols, colnames(all.10))
+
+blood.10 <- all.10[,blood.cols]
+blood.90 <- all.90[,blood.cols]
+
+tissues.cols <- setdiff(colnames(all.10),blood.cols)
+tissues.10 <- all.10[,tissues.cols]
+tissues.90 <- all.90[,tissues.cols]
+
+# Filter markers from blood
+print(paste("Getting blood markers -", Sys.time()))
+rows.meth.blood <- get_rows_methylated_in_blood(blood.10,BLOOD_METH_THRESHOLD)
+rows.unmeth.blood <- get_rows_unmethylated_in_blood(blood.90,BLOOD_UNMETH_THRESHOLD)
+blood.10.meth_blood <- blood.10[rows.meth.blood,]
+blood.90.unmeth_blood <- blood.90[rows.unmeth.blood,]
+
+# Filter tissues according to markers from blood
+print(paste("Filtering tissues according to blood markers -", Sys.time()))
+tissues.10.meth_blood <- tissues.10[rows.meth.blood,]
+tissues.90.meth_blood <- tissues.90[rows.meth.blood,]
+tissues.10.unmeth_blood <- tissues.10[rows.unmeth.blood,]
+tissues.90.unmeth_blood <- tissues.90[rows.unmeth.blood,]
+
+# Find unmeth markers for Primary_Tumor
+tissue <- paste0(cancer,"_Primary_Tumor")
+print(paste("Find unmeth markers for", tissue, "-", Sys.time()))
+unmeth.markers <- get_unmeth_markers(tissue,blood.10.meth_blood,tissues.10.meth_blood,tissues.90.meth_blood,TISSUE_UNMETH_THRESHOLD,OTHER_TISSUES_METH_THRESHOLD)
+write_markers_file(unmeth.markers, annotation, markers_dir, cancer, "unmeth", tissue, annotation.id)
+
+print(paste("Find meth markers for", tissue, "-", Sys.time()))
+meth.markers <- get_meth_markers(tissue,blood.table.90.unmeth_blood,tissues.table.10.unmeth_blood,tissues.table.90.unmeth_blood,TISSUE_METH_THRESHOLD,OTHER_TISSUES_UNMETH_THRESHOLD)
+write_markers_file(meth.markers, annotation, markers_dir, cancer, "meth", tissue, annotation.id)
+
+# Find unmeth markers for Metastatic
+#tissue <- paste0(cancer,"_Metastatic")
+#print(paste("Find unmeth markers for", tissue, "-", Sys.time()))
+#unmeth.markers <- get_unmeth_markers(tissue,blood.10.meth_blood,tissues.10.meth_blood,tissues.90.meth_blood,TISSUE_UNMETH_THRESHOLD,OTHER_TISSUES_METH_THRESHOLD)
+#write_markers_file(unmeth.markers, annotation, markers_dir, cancer, "unmeth", tissue, annotation.id)
+
+#print(paste("Find meth markers for", tissue, "-", Sys.time()))
+#meth.markers <- get_meth_markers(tissue,blood.table.90.unmeth_blood,tissues.table.10.unmeth_blood,tissues.table.90.unmeth_blood,TISSUE_METH_THRESHOLD,OTHER_TISSUES_UNMETH_THRESHOLD)
+#write_markers_file(meth.markers, annotation, markers_dir, cancer, "meth", tissue, annotation.id)
+
+print(paste("FINISHED -", Sys.time()))
